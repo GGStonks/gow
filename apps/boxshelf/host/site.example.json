@@ -1,0 +1,12 @@
+{
+  "accounts": {
+    "<wolf profile id>": "/srv/games/accounts/<name>",
+    "<another profile id>": "/srv/games/accounts/<another name>"
+  },
+  "boxshelf": "/srv/games/Boxshelf",
+  "pcGames": "/srv/games/PC",
+  "gameDirs": ["/srv/games/Nintendo Switch", "/srv/games/Nintendo Switch 2"],
+  "emulatorDirs": ["/srv/games/Nintendo Switch"],
+  "protonDir": "/home/<user>/.steam/root/compatibilitytools.d",
+  "mounts": []
+}

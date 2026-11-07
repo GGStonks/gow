@@ -1,0 +1,43 @@
+# System-wide KWin defaults for the Boxshelf session (a profile can still
+# override any of these in ~/.config/kwinrc).
+
+[Windows]
+# A launched game takes the screen straight away; Boxshelf raises itself again
+# when the game ends.
+FocusStealingPreventionLevel=0
+# Windows that are not fullscreen open maximized, without a title bar.
+Placement=Maximizing
+BorderlessMaximizedWindows=true
+
+# No hot corners or edge gestures: a TV launcher has no desktop to reveal.
+[Effect-overview]
+BorderActivate=9
+
+[Effect-windowview]
+BorderActivateAll=9
+
+[ElectricBorders]
+Bottom=None
+BottomLeft=None
+BottomRight=None
+Left=None
+Right=None
+Top=None
+TopLeft=None
+TopRight=None
+
+[TouchEdges]
+Bottom=None
+Left=None
+Right=None
+Top=None
+
+[Plugins]
+# Effects that only add latency or pop up over a game.
+blurEnabled=false
+contrastEnabled=false
+slidingpopupsEnabled=false
+kwin4_effect_geometry_changeEnabled=false
+
+[Xwayland]
+Scale=1

@@ -1,0 +1,7 @@
+# KDE defaults for the Boxshelf session (a profile's ~/.config/kdeglobals can
+# override them).
+
+[KDE]
+# No window animations: switching between the shelf and a game, and opening a
+# dialog, happen at once instead of fading in and out over the stream.
+AnimationDurationFactor=0

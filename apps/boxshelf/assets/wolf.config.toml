@@ -1,0 +1,75 @@
+# Boxshelf entry for one Wolf profile. Copy it under each [[profiles]] that
+# should have Boxshelf, and replace <name> with the account's own folder
+# (host/wolf-entries.py writes it for every profile, from host/site.json).
+# The host paths (/srv/games/...) are examples: use where Boxshelf, the games
+# and each account's folder live on your machine.
+#
+# PC games (Epic through legendary, Windows games through Proton / umu-run)
+# need SYS_ADMIN and unconfined seccomp / AppArmor for the
+# Steam Linux Runtime's bubblewrap, and a higher open-files limit for esync.
+
+[[apps]]
+icon_png_path = '/etc/wolf/icons/boxshelf.png'
+start_virtual_compositor = true
+title = 'Boxshelf'
+
+[apps.runner]
+base_create_json = '''{
+  "HostConfig": {
+    "IpcMode": "host",
+    "Privileged": false,
+    "CapAdd": ["SYS_ADMIN", "SYS_NICE", "SYS_PTRACE", "NET_RAW", "MKNOD", "NET_ADMIN"],
+    "SecurityOpt": ["seccomp=unconfined", "apparmor=unconfined"],
+    "Ulimits": [{"Name": "nofile", "Hard": 10240, "Soft": 10240}],
+    "DeviceCgroupRules": ["c 13:* rmw", "c 244:* rmw"]
+  }
+}
+'''
+devices = []
+env = [
+    'GOW_REQUIRED_DEVICES=/dev/input/* /dev/dri/* /dev/nvidia*',
+    'BOXSHELF_EMULATOR_DIRS=/srv/games/Nintendo Switch',
+    # The account's PC games folders (startup-app.sh puts them in its settings at every start)
+    'BOXSHELF_PC={"gamesDir": "/srv/games/PC", "userGamesDir": "/srv/games/accounts/<name>/Games", "prefixDir": "/srv/games/accounts/<name>/Prefixes", "homeDir": "/srv/games/accounts/<name>/Home"}',
+    'SDL_GAMECONTROLLERCONFIG=0500a8394c050000e60c000011810000,Wolf controller,platform:Linux,crc:39a8,a:b0,b:b1,x:b3,y:b2,back:b8,start:b9,leftstick:b11,rightstick:b12,leftshoulder:b4,rightshoulder:b5,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a3,righty:a4,lefttrigger:+a2,righttrigger:a5,'
+]
+image = 'boxshelf:latest'
+mounts = [
+    # The app itself, shared and read-only (updates on the host reach every profile)
+    '/srv/games/Boxshelf/Boxshelf.AppImage:/opt/boxshelf/Boxshelf.AppImage:ro',
+    # First-start settings, made by rebuild-Boxshelf without the host's accounts
+    '/etc/wolf/boxshelf/seed-config.json:/opt/boxshelf/seed/config.json:ro',
+    # Shared art and reading library, at the paths the settings point to
+    '/srv/games/Boxshelf/Library:/srv/games/Boxshelf/Library:rw',
+    '/srv/games/Boxshelf/Guides:/srv/games/Boxshelf/Guides:rw',
+    '/srv/games/Boxshelf/Magazines:/srv/games/Boxshelf/Magazines:rw',
+    # Music, themes and the anti-cheat runtimes Boxshelf reads from its own folder
+    '/srv/games/Boxshelf/Songs:/home/retro/Boxshelf/Songs:ro',
+    '/srv/games/Boxshelf/Custom themes:/home/retro/Boxshelf/Custom themes:ro',
+    '/srv/games/Boxshelf/tools/runtimes:/home/retro/Boxshelf/tools/runtimes:ro',
+    # Switch emulators and games, read-only, at the same paths as on the host
+    '/srv/games/Nintendo Switch:/srv/games/Nintendo Switch:ro',
+    '/srv/games/Nintendo Switch 2:/srv/games/Nintendo Switch 2:ro',
+    # PC games, at the same paths as on the host (Wine prefixes and settings name them):
+    # the shared PC games folder and the account's own folder (Prefixes, Games = its
+    # own copies, Home = the home its Linux games get)
+    '/srv/games/PC:/srv/games/PC:rw',
+    '/srv/games/accounts/<name>:/srv/games/accounts/<name>:rw',
+    # The account's own Citron (keys, firmware, saves), in its Home
+    '/srv/games/accounts/<name>/Home/.local/share/citron:/home/retro/.local/share/citron:rw',
+    '/srv/games/accounts/<name>/Home/.config/citron:/home/retro/.config/citron:rw',
+    # One umu runtime (Steam Linux Runtime for Proton) for every profile, and Proton builds
+    '/etc/wolf/boxshelf/umu:/home/retro/.local/share/umu:rw',
+    '/usr/share/steam:/usr/share/steam:ro',
+    '/home/<user>/.steam/root/compatibilitytools.d:/home/retro/.steam/root/compatibilitytools.d:ro',
+    # Boxshelf unpacked once per version, shared by every profile (faster starts)
+    '/etc/wolf/boxshelf/app-cache:/var/cache/boxshelf:rw',
+    # The box-art database (LaunchBox, 235 MB), copied into a new profile instead of downloaded and indexed
+    '/etc/wolf/boxshelf/boxart-cache:/opt/boxshelf/seed/boxart-cache:ro',
+    '/run/udev/data:/run/udev/data:ro',
+    # (wolf-entries.py also adds site.json's own mounts, and a few per account: a game's
+    # shared mods laid over its folder, saves in Documents)
+]
+name = 'WolfBoxshelf'
+ports = []
+type = 'docker'
