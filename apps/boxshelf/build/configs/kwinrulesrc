@@ -22,7 +22,7 @@ placementrule=2
 [boxshelf-dialogs-above]
 Description=Boxshelf's dialogs: above the shelf
 types=32
-wmclass=boxshelf-bin
-wmclassmatch=1
+wmclass=^(trustyshelf|boxshelf)-bin$
+wmclassmatch=3
 above=true
 aboverule=2

@@ -44,7 +44,7 @@ def main():
     # Boxshelf's window is up once its process runs: KWin has mapped its own window in Wolf's compositor before it starts
     # the session, and that window has the keyboard focus (it's the only one)
     for _ in range(240):
-        if running("boxshelf-bin"):
+        if running("trustyshelf-bin") or running("boxshelf-bin"):  # ((T)rustyShelf, the renamed fork; or Boxshelf)
             break
         time.sleep(0.5)
     else:
