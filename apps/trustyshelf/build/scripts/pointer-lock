@@ -5,7 +5,7 @@ KWin runs as a window inside Wolf's compositor. Like that, it only hears where t
 moved, unless it locks the cursor in Wolf's compositor; then it gets the mouse's relative movement, as on a desktop.
 A game that captures the mouse (Minecraft's mouse-look, any first-person game) needs that movement: without it the
 camera doesn't move, while menus, which only need the cursor, work. KWin locks the cursor only when Right Ctrl is
-pressed (Right Ctrl again unlocks it). This presses Right Ctrl once, when Boxshelf is up and KWin has the focus,
+pressed (Right Ctrl again unlocks it). This presses Right Ctrl once, when (T)rustyShelf is up and KWin has the focus,
 through the session's own Wolf keyboard: a key written to the keyboard's node reaches everything reading it, here
 Wolf's compositor, which hands it to KWin. That node exists in this container only; every other session's, and this
 PC's, are out of reach.
@@ -21,7 +21,7 @@ EV_SYN, EV_KEY, KEY_RIGHTCTRL = 0, 1, 97
 
 
 def log(msg):
-    print(f"[Boxshelf] pointer lock: {msg}", file=sys.stderr, flush=True)
+    print(f"[(T)rustyShelf] pointer lock: {msg}", file=sys.stderr, flush=True)
 
 
 def wolf_keyboard():
@@ -41,14 +41,14 @@ def running(name):
 
 
 def main():
-    # Boxshelf's window is up once its process runs: KWin has mapped its own window in Wolf's compositor before it starts
+    # (T)rustyShelf's window is up once its process runs: KWin has mapped its own window in Wolf's compositor before it starts
     # the session, and that window has the keyboard focus (it's the only one)
     for _ in range(240):
         if running("trustyshelf-bin") or running("boxshelf-bin"):  # ((T)rustyShelf, the renamed fork; or Boxshelf)
             break
         time.sleep(0.5)
     else:
-        log("Boxshelf didn't start; not locking")
+        log("(T)rustyShelf didn't start; not locking")
         return
     time.sleep(2)
     node = wolf_keyboard()

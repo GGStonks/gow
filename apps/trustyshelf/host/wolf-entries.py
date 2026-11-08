@@ -1,14 +1,14 @@
-"""Write the Boxshelf app into every account profile of Wolf's config.toml.
+"""Write the (T)rustyShelf app into every account profile of Wolf's config.toml.
 
-Each profile gets: the image, the host's Boxshelf.AppImage (read-only), the first-start seeds (settings without
-accounts, the box-art database), the shared caches (unpacked Boxshelf, umu's runtime), the emulator and game folders,
+Each profile gets: the image, the host's TrustyShelf.AppImage (read-only), the first-start seeds (settings without
+accounts, the box-art database), the shared caches (unpacked (T)rustyShelf, umu's runtime), the emulator and game folders,
 and the PC games: the shared PC games folder and the account's own folder (Prefixes, Games = its own copies, Home = the
 home its Linux games get, Citron's data in it too), all at their host paths, so Wine prefixes and game settings work
-the same on the host and in every account. BOXSHELF_PC tells Boxshelf which folders are the account's (startup-app.sh
+the same on the host and in every account. TRUSTYSHELF_PC tells (T)rustyShelf which folders are the account's (startup-app.sh
 puts them in its settings at every start).
 A few mounts of the account's Heroic app that lay a shared folder over part of a game (a game's mods, its saves in
-Documents) are carried over, moved to where Boxshelf has that game; nothing of Heroic's own is mounted.
-Proton gets the permissions it needs. Old Boxshelf entries are replaced; everything else in the file is checked to be
+Documents) are carried over, moved to where (T)rustyShelf has that game; nothing of Heroic's own is mounted.
+Proton gets the permissions it needs. Old (T)rustyShelf entries are replaced; everything else in the file is checked to be
 unchanged.
 
 What's particular to a machine (its accounts and folders) comes from a site file: copy site.example.json to site.json
@@ -27,20 +27,21 @@ import tomllib
 SITE, SRC, DST = sys.argv[1], sys.argv[2], sys.argv[3]
 site = json.load(open(SITE, encoding="utf-8"))
 ACCOUNTS = site["accounts"]                    # Wolf profile id -> the account's own folder on the host
-BOXSHELF, PC = site["boxshelf"], site["pcGames"]  # Boxshelf's folder (AppImage, Library...), the shared PC games
+TRUSTYSHELF, PC = site["trustyshelf"], site["pcGames"]
+APPIMAGE = site.get("appImage") or TRUSTYSHELF + "/TrustyShelf.AppImage"  # the AppImage (its file can have any name)  # (T)rustyShelf's folder (AppImage, Library...), the shared PC games
 GAME_DIRS = site.get("gameDirs", [])           # read-only, at the same paths (emulator games)
 EMULATOR_DIRS = site.get("emulatorDirs", [])   # their AppImages are linked into ~/Applications
 PROTON_DIR = site.get("protonDir", "")         # the host's Proton builds (compatibilitytools.d)
 EXTRA = site.get("mounts", [])                 # anything else every account gets ("src:dst:mode")
-for p in [BOXSHELF, PC, *ACCOUNTS.values(), *GAME_DIRS]:
+for p in [TRUSTYSHELF, PC, *ACCOUNTS.values(), *GAME_DIRS]:
     assert os.path.isabs(p), f"not an absolute path in {SITE}: {p}"
 
 q = repr  # (a TOML literal string: single quotes, as Python writes them; paths here have none)
 BLOCK = """
     [[profiles.apps]]
-    icon_png_path = '/etc/wolf/icons/boxshelf.png'
+    icon_png_path = '/etc/wolf/icons/trustyshelf.png'
     start_virtual_compositor = true
-    title = 'Boxshelf'
+    title = '(T)rustyShelf'
 
         [profiles.apps.runner]
         base_create_json = \'\'\'{
@@ -59,10 +60,10 @@ BLOCK = """
             'GOW_REQUIRED_DEVICES=/dev/input/* /dev/dri/* /dev/nvidia*',{env}
             'SDL_GAMECONTROLLERCONFIG=0500a8394c050000e60c000011810000,Wolf controller,platform:Linux,crc:39a8,a:b0,b:b1,x:b3,y:b2,back:b8,start:b9,leftstick:b11,rightstick:b12,leftshoulder:b4,rightshoulder:b5,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a3,righty:a4,lefttrigger:+a2,righttrigger:a5,'
         ]
-        image = 'boxshelf:latest'
+        image = 'trustyshelf:latest'
         mounts = [{mounts}
         ]
-        name = 'WolfBoxshelf'
+        name = 'WolfTrustyShelf'
         ports = []
         type = 'docker'
 """
@@ -71,25 +72,25 @@ BLOCK = """
 def block(pid):
     u = ACCOUNTS[pid]
     pc = {"gamesDir": PC, "userGamesDir": u + "/Games", "prefixDir": u + "/Prefixes", "homeDir": u + "/Home"}
-    env = [*(["BOXSHELF_EMULATOR_DIRS=" + ":".join(EMULATOR_DIRS)] if EMULATOR_DIRS else []), "BOXSHELF_PC=" + json.dumps(pc, ensure_ascii=False)]
+    env = [*(["TRUSTYSHELF_EMULATOR_DIRS=" + ":".join(EMULATOR_DIRS)] if EMULATOR_DIRS else []), "TRUSTYSHELF_PC=" + json.dumps(pc, ensure_ascii=False)]
     mounts = [
-        f"{BOXSHELF}/Boxshelf.AppImage:/opt/boxshelf/Boxshelf.AppImage:ro",
-        "/etc/wolf/boxshelf/seed-config.json:/opt/boxshelf/seed/config.json:ro",
-        f"{BOXSHELF}/Library:{BOXSHELF}/Library:rw",
-        f"{BOXSHELF}/Guides:{BOXSHELF}/Guides:rw",
-        f"{BOXSHELF}/Magazines:{BOXSHELF}/Magazines:rw",
-        f"{BOXSHELF}/Songs:/home/retro/Boxshelf/Songs:ro",
-        f"{BOXSHELF}/Custom themes:/home/retro/Boxshelf/Custom themes:ro",
-        f"{BOXSHELF}/tools/runtimes:/home/retro/Boxshelf/tools/runtimes:ro",
+        f"{APPIMAGE}:/opt/trustyshelf/TrustyShelf.AppImage:ro",
+        "/etc/wolf/trustyshelf/seed-config.json:/opt/trustyshelf/seed/config.json:ro",
+        f"{TRUSTYSHELF}/Library:{TRUSTYSHELF}/Library:rw",
+        f"{TRUSTYSHELF}/Guides:{TRUSTYSHELF}/Guides:rw",
+        f"{TRUSTYSHELF}/Magazines:{TRUSTYSHELF}/Magazines:rw",
+        f"{TRUSTYSHELF}/Songs:/home/retro/TrustyShelf/Songs:ro",
+        f"{TRUSTYSHELF}/Custom themes:/home/retro/TrustyShelf/Custom themes:ro",
+        f"{TRUSTYSHELF}/tools/runtimes:/home/retro/TrustyShelf/tools/runtimes:ro",
         *[f"{d}:{d}:ro" for d in GAME_DIRS],
         f"{PC}:{PC}:rw",
         f"{u}:{u}:rw",
         f"{u}/Home/.local/share/citron:/home/retro/.local/share/citron:rw",
         f"{u}/Home/.config/citron:/home/retro/.config/citron:rw",
         *EXTRA,
-        "/etc/wolf/boxshelf/umu:/home/retro/.local/share/umu:rw",
-        "/etc/wolf/boxshelf/app-cache:/var/cache/boxshelf:rw",
-        "/etc/wolf/boxshelf/boxart-cache:/opt/boxshelf/seed/boxart-cache:ro",
+        "/etc/wolf/trustyshelf/umu:/home/retro/.local/share/umu:rw",
+        "/etc/wolf/trustyshelf/app-cache:/var/cache/trustyshelf:rw",
+        "/etc/wolf/trustyshelf/boxart-cache:/opt/trustyshelf/seed/boxart-cache:ro",
         "/run/udev/data:/run/udev/data:ro",
         "/usr/share/steam:/usr/share/steam:ro",
         *([f"{PROTON_DIR}:/home/retro/.steam/root/compatibilitytools.d:ro"] if PROTON_DIR else []),
@@ -100,7 +101,7 @@ def block(pid):
             .replace("{mounts}", ",".join("\n            " + q(m) for m in mounts)))
 
 
-# The account's Heroic mounts that lay a shared folder over part of a game, moved to where Boxshelf has it:
+# The account's Heroic mounts that lay a shared folder over part of a game, moved to where (T)rustyShelf has it:
 #   .../Heroic/Prefixes/<prefix>/...  -> <account>/Prefixes/<prefix>/...   (e.g. a game's mods inside its prefix)
 #   .../Heroic/<game>/<inside>        -> <account>/Games/<game>/<inside>   when the account has its own copy (its mods)
 #   /home/retro/Documents/...         -> kept, and also in <account>/Home/Documents (where its Linux games look)
@@ -130,9 +131,10 @@ def carried(pid, u):
 
 
 text = open(SRC, encoding="utf-8").read()
-# drop the Boxshelf blocks written before (each from its [[profiles.apps]] line to its type line)
-text = re.sub(r"\n    \[\[profiles\.apps\]\]\n    icon_png_path = '/etc/wolf/icons/boxshelf\.png'\n.*?\n        type = 'docker'\n", "\n", text, flags=re.S)
-assert "WolfBoxshelf" not in text, "an old Boxshelf block is still there"
+# drop the (T)rustyShelf blocks written before (each from its [[profiles.apps]] line to its type line)
+# (and the Boxshelf blocks from before the rename to (T)rustyShelf)
+text = re.sub(r"\n    \[\[profiles\.apps\]\]\n    icon_png_path = '/etc/wolf/icons/(?:trustyshelf|boxshelf)\.png'\n.*?\n        type = 'docker'\n", "\n", text, flags=re.S)
+assert "WolfTrustyShelf" not in text and "WolfBoxshelf" not in text, "an old (T)rustyShelf / Boxshelf block is still there"
 stripped = tomllib.loads(text)
 lines = text.split("\n")
 # Where each profile section ends: just before the next [[profiles]], or EOF
@@ -164,16 +166,16 @@ if not out.endswith("\n"):
     out += "\n"
 
 after = tomllib.loads(out)
-before = stripped  # compare against the config without the old Boxshelf blocks
+before = stripped  # compare against the config without the old (T)rustyShelf blocks
 
-# Verify: the only differences are one new Boxshelf app per account and the KDE icon path
+# Verify: the only differences are one new (T)rustyShelf app per account and the KDE icon path
 assert before.keys() == after.keys(), "top-level tables changed"
 for k in before:
     if k != "profiles":
         assert before[k] == after[k], f"{k} changed"
 for pb, pa in zip(before["profiles"], after["profiles"]):
     apps_b, apps_a = pb.get("apps", []), pa.get("apps", [])
-    extra = [a for a in apps_a if a.get("title") == "Boxshelf"]
+    extra = [a for a in apps_a if a.get("title") == "(T)rustyShelf"]
     if pb["id"] in ACCOUNTS:
         assert len(extra) == 1 and len(apps_a) == len(apps_b) + 1, pb["id"]
         mounts = extra[0]["runner"]["mounts"]

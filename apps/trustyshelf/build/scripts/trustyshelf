@@ -1,55 +1,55 @@
 #!/bin/bash
-# Boxshelf inside KWin. It runs through Xwayland (--ozone-platform=x11):
-# always-on-top, window opacity and raising a window, which Boxshelf relies
+# (T)rustyShelf inside KWin. It runs through Xwayland (--ozone-platform=x11):
+# always-on-top, window opacity and raising a window, which (T)rustyShelf relies
 # on, only work for X11 windows. --no-sandbox: Chromium's sandbox needs
-# privileges this container doesn't have (and Boxshelf's own launcher passes
+# privileges this container doesn't have (and (T)rustyShelf's own launcher passes
 # the same flag). --password-store=basic: in a KDE session Chromium asks
 # KWallet for its key, and with no KWallet here it waits 25 s for D-Bus to
 # time out before showing anything.
 #
 # Faster starts: the AppImage is unpacked once per version (its size and date)
-# into BOXSHELF_CACHE, shared by every profile, and started from there; an
+# into TRUSTYSHELF_CACHE, shared by every profile, and started from there; an
 # extract-and-run unpacked all 290 MB into /tmp on every start. Without a
 # usable cache folder it falls back to extract-and-run.
-BOXSHELF_APPIMAGE="${BOXSHELF_APPIMAGE:-/opt/boxshelf/Boxshelf.AppImage}"
-BOXSHELF_CACHE="${BOXSHELF_CACHE:-/var/cache/boxshelf}"
+TRUSTYSHELF_APPIMAGE="${TRUSTYSHELF_APPIMAGE:-/opt/trustyshelf/TrustyShelf.AppImage}"
+TRUSTYSHELF_CACHE="${TRUSTYSHELF_CACHE:-/var/cache/trustyshelf}"
 
 # ---------- File dialogs that fit the screen ----------
-# Boxshelf's "Choose a folder…" was a GTK dialog drawn by xdg-desktop-portal-gtk: a separate program on Wayland, not
-# tied to Boxshelf's window, so KWin maximized it like a game, at GTK's remembered 1096x822 (taller than a 720p
+# (T)rustyShelf's "Choose a folder…" was a GTK dialog drawn by xdg-desktop-portal-gtk: a separate program on Wayland, not
+# tied to (T)rustyShelf's window, so KWin maximized it like a game, at GTK's remembered 1096x822 (taller than a 720p
 # stream: its Select button was off the screen). Now:
-#   - --xdg-portal-required-version=99: Chromium draws the dialog itself, as Boxshelf's own X11 dialog (Chromium on
+#   - --xdg-portal-required-version=99: Chromium draws the dialog itself, as (T)rustyShelf's own X11 dialog (Chromium on
 #     X11 puts GTK on X11 too), which KWin centres (/etc/xdg/kwinrulesrc)
 #   - its size comes from this stream's resolution (85%, at most 1000x700), and it opens in the home folder rather
 #     than the empty "Recent" list, where Select stays greyed out. These settings are compiled into a private folder
-#     and read from memory, so a size GTK saved can't bring the overflow back. (Only Boxshelf and what it starts see
+#     and read from memory, so a size GTK saved can't bring the overflow back. (Only (T)rustyShelf and what it starts see
 #     them; KWin and the rest of the session don't.)
 FLAGS=(--no-sandbox --ozone-platform=x11 --password-store=basic --xdg-portal-required-version=99)
-# extra Chromium / Boxshelf options for testing (e.g. --remote-debugging-port=9333), space-separated, no spaces inside
-read -r -a EXTRA <<< "${BOXSHELF_ARGS:-}"
+# extra Chromium / (T)rustyShelf options for testing (e.g. --remote-debugging-port=9333), space-separated, no spaces inside
+read -r -a EXTRA <<< "${TRUSTYSHELF_ARGS:-}"
 FLAGS+=("${EXTRA[@]}")
 
 dialog_settings() {
     local w h dir
     w=$(( ${GAMESCOPE_WIDTH:-1920} * 85 / 100 )); [ "$w" -gt 1000 ] && w=1000
     h=$(( ${GAMESCOPE_HEIGHT:-1080} * 85 / 100 )); [ "$h" -gt 700 ] && h=700
-    dir=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/boxshelf-gsettings.XXXXXX") || return 1
+    dir=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/trustyshelf-gsettings.XXXXXX") || return 1
     cp /usr/share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml "$dir/" || return 1
     printf '[org.gtk.Settings.FileChooser]\nwindow-size=(%d, %d)\nstartup-mode='"'"'cwd'"'"'\nsort-directories-first=true\n' \
-        "$w" "$h" > "$dir/90_boxshelf.gschema.override"
+        "$w" "$h" > "$dir/90_trustyshelf.gschema.override"
     glib-compile-schemas "$dir" || return 1
     export GSETTINGS_SCHEMA_DIR="$dir" GSETTINGS_BACKEND=memory
 }
-dialog_settings 2>/dev/null || echo "[Boxshelf] file dialog size not set (GTK schema missing or not compiled): dialogs use GTK's own size" >&2
+dialog_settings 2>/dev/null || echo "[(T)rustyShelf] file dialog size not set (GTK schema missing or not compiled): dialogs use GTK's own size" >&2
 
 run_cached() {
-    [ -d "$BOXSHELF_CACHE" ] && [ -w "$BOXSHELF_CACHE" ] || return 1
+    [ -d "$TRUSTYSHELF_CACHE" ] && [ -w "$TRUSTYSHELF_CACHE" ] || return 1
     local key dir tmp
-    key=$(stat -c '%s-%Y' "$BOXSHELF_APPIMAGE" 2>/dev/null) || return 1
-    dir="$BOXSHELF_CACHE/$key"
+    key=$(stat -c '%s-%Y' "$TRUSTYSHELF_APPIMAGE" 2>/dev/null) || return 1
+    dir="$TRUSTYSHELF_CACHE/$key"
     if [ ! -x "$dir/AppRun" ]; then
-        tmp=$(mktemp -d "$BOXSHELF_CACHE/.unpack-XXXXXX") || return 1
-        if ! (cd "$tmp" && "$BOXSHELF_APPIMAGE" --appimage-extract >/dev/null 2>&1) || [ ! -x "$tmp/squashfs-root/AppRun" ]; then
+        tmp=$(mktemp -d "$TRUSTYSHELF_CACHE/.unpack-XXXXXX") || return 1
+        if ! (cd "$tmp" && "$TRUSTYSHELF_APPIMAGE" --appimage-extract >/dev/null 2>&1) || [ ! -x "$tmp/squashfs-root/AppRun" ]; then
             rm -rf "$tmp"; return 1
         fi
         # another profile may have finished first: keep theirs
@@ -57,7 +57,7 @@ run_cached() {
         rm -rf "$tmp"
         [ -x "$dir/AppRun" ] || return 1
         # older versions go (one that's still running keeps its files until it closes)
-        find "$BOXSHELF_CACHE" -mindepth 1 -maxdepth 1 -type d ! -name "$key" ! -name '.unpack-*' -mmin +10 -exec rm -rf {} + 2>/dev/null
+        find "$TRUSTYSHELF_CACHE" -mindepth 1 -maxdepth 1 -type d ! -name "$key" ! -name '.unpack-*' -mmin +10 -exec rm -rf {} + 2>/dev/null
     fi
     exec "$dir/AppRun" "${FLAGS[@]}" "$@"
 }
@@ -65,4 +65,4 @@ run_cached() {
 # (from the home folder: a file dialog with no folder given opens there, not in the app's own folder)
 cd "$HOME" 2>/dev/null || true
 run_cached "$@"
-exec "${BOXSHELF_APPIMAGE}" --appimage-extract-and-run "${FLAGS[@]}" "$@"
+exec "${TRUSTYSHELF_APPIMAGE}" --appimage-extract-and-run "${FLAGS[@]}" "$@"

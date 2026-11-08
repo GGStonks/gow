@@ -1,8 +1,8 @@
-# System-wide KWin defaults for the Boxshelf session (a profile can still
+# System-wide KWin defaults for the (T)rustyShelf session (a profile can still
 # override any of these in ~/.config/kwinrc).
 
 [Windows]
-# A launched game takes the screen straight away; Boxshelf raises itself again
+# A launched game takes the screen straight away; (T)rustyShelf raises itself again
 # when the game ends.
 FocusStealingPreventionLevel=0
 # Windows that are not fullscreen open maximized, without a title bar.

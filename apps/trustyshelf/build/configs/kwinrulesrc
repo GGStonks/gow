@@ -1,17 +1,17 @@
-# KWin window rules for the Boxshelf session (system-wide).
+# KWin window rules for the (T)rustyShelf session (system-wide).
 # A profile's own ~/.config/kwinrulesrc would replace this list, not add to it
 # (its [General] count / rules win), so rules belong here.
 #
-# 1. Every dialog (Boxshelf's file pickers, an emulator's settings window)
+# 1. Every dialog ((T)rustyShelf's file pickers, an emulator's settings window)
 #    opens in the middle of the screen. With kwinrc's Placement=Maximizing
 #    they went to the top-left corner, where a dialog taller than the screen
 #    had its buttons cut off. Normal windows (the games) still open maximized.
-# 2. Boxshelf's own dialogs also stay above its fullscreen window. Other
+# 2. (T)rustyShelf's own dialogs also stay above its fullscreen window. Other
 #    programs' dialogs aren't forced on top: one left open behind a game must
 #    not float over the shelf afterwards.
 [General]
 count=2
-rules=dialogs-centered,boxshelf-dialogs-above
+rules=dialogs-centered,trustyshelf-dialogs-above
 
 [dialogs-centered]
 Description=Dialogs: centered
@@ -19,8 +19,8 @@ types=32
 placement=5
 placementrule=2
 
-[boxshelf-dialogs-above]
-Description=Boxshelf's dialogs: above the shelf
+[trustyshelf-dialogs-above]
+Description=(T)rustyShelf's dialogs: above the shelf
 types=32
 wmclass=^(trustyshelf|boxshelf)-bin$
 wmclassmatch=3

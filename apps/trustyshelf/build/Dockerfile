@@ -1,16 +1,16 @@
 ARG BASE_APP_IMAGE
 
 # Built on base-emu: Wolf's input/udev/NVIDIA handling from base-app, plus the
-# emulators (Dolphin, Cemu, PCSX2, RPCS3, RetroArch, ...) Boxshelf starts.
+# emulators (Dolphin, Cemu, PCSX2, RPCS3, RetroArch, ...) (T)rustyShelf starts.
 # hadolint ignore=DL3006
 FROM ${BASE_APP_IMAGE}
 
 ARG DEBIAN_FRONTEND=noninteractive
-# AppImages (Boxshelf itself, the emulators) run without FUSE inside Docker
+# AppImages ((T)rustyShelf itself, the emulators) run without FUSE inside Docker
 # see: https://github.com/AppImage/AppImageKit/wiki/FUSE#docker
 ENV APPIMAGE_EXTRACT_AND_RUN=1
 
-# KWin runs nested inside Wolf's Wayland output. Boxshelf needs a stacking
+# KWin runs nested inside Wolf's Wayland output. (T)rustyShelf needs a stacking
 # window manager: it keeps itself always-on-top, fades its own opacity and
 # raises a cover over a closing game. Sway (tiling) and gamescope (one window
 # at a time) break that; KWin behaves exactly like a Plasma desktop does.
@@ -48,7 +48,7 @@ RUN apt-get update && \
     # permitted". A compositor nested inside Wolf doesn't need it.
     setcap -r /usr/bin/kwin_wayland
 
-# PC games without Steam (Boxshelf's Linux PC support): legendary for Epic Games
+# PC games without Steam ((T)rustyShelf's Linux PC support): legendary for Epic Games
 # (sign-in, library, installs, launch info) and umu-run, which runs Proton
 # outside Steam with the Steam Linux Runtime and protonfixes. Pinned releases,
 # checked against the SHA-256 GitHub publishes for them. The Proton builds
@@ -76,19 +76,19 @@ rm -rf legendary umu umu.tar
 _INSTALL_PC_TOOLS
 
 # Wine for the PC games set to run with plain Wine instead of Proton (a game's
-# own way of running, Boxshelf's pc.run): the same Ubuntu packages, 32 and 64
+# own way of running, (T)rustyShelf's pc.run): the same Ubuntu packages, 32 and 64
 # bit, as GoW's Heroic image, so a prefix made there opens unchanged here.
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends wine wine64 wine32:i386 && \
     rm -rf /var/lib/apt/lists/*
 
-# Wolf mounts the host's Boxshelf.AppImage at /opt/boxshelf/Boxshelf.AppImage:
+# Wolf mounts the host's TrustyShelf.AppImage at /opt/trustyshelf/TrustyShelf.AppImage:
 # every profile runs the host's build (a release or one built from source),
 # and the host's updates reach every profile without rebuilding the image.
-# Nothing else may live beside it: with no data/ folder there, Boxshelf keeps
-# its settings in ~/Boxshelf, which is the profile's own home.
-RUN mkdir -p /opt/boxshelf/seed
+# Nothing else may live beside it: with no data/ folder there, (T)rustyShelf keeps
+# its settings in ~/TrustyShelf, which is the profile's own home.
+RUN mkdir -p /opt/trustyshelf/seed
 
 # Qt (KWin, the Qt emulators) and Electron want a UTF-8 locale
 ENV LANG=C.UTF-8
@@ -96,10 +96,10 @@ ENV LANG=C.UTF-8
 COPY configs/kwinrc /etc/xdg/kwinrc
 COPY configs/kwinrulesrc /etc/xdg/kwinrulesrc
 COPY configs/kdeglobals /etc/xdg/kdeglobals
-COPY --chmod=755 scripts/boxshelf /opt/boxshelf/boxshelf
-COPY --chmod=755 scripts/init-session.sh /etc/cont-init.d/40-boxshelf.sh
+COPY --chmod=755 scripts/trustyshelf /opt/trustyshelf/trustyshelf
+COPY --chmod=755 scripts/init-session.sh /etc/cont-init.d/40-trustyshelf.sh
 COPY --chmod=755 scripts/startup-app.sh /opt/gow/startup-app.sh
-COPY --chmod=755 scripts/pointer-lock /opt/boxshelf/pointer-lock
+COPY --chmod=755 scripts/pointer-lock /opt/trustyshelf/pointer-lock
 
 ARG IMAGE_SOURCE
 LABEL org.opencontainers.image.source=$IMAGE_SOURCE
