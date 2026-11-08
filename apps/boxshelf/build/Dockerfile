@@ -99,6 +99,7 @@ COPY configs/kdeglobals /etc/xdg/kdeglobals
 COPY --chmod=755 scripts/boxshelf /opt/boxshelf/boxshelf
 COPY --chmod=755 scripts/init-session.sh /etc/cont-init.d/40-boxshelf.sh
 COPY --chmod=755 scripts/startup-app.sh /opt/gow/startup-app.sh
+COPY --chmod=755 scripts/pointer-lock /opt/boxshelf/pointer-lock
 
 ARG IMAGE_SOURCE
 LABEL org.opencontainers.image.source=$IMAGE_SOURCE

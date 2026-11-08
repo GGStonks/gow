@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Give the nested KWin the stream's real mouse movement, so games that capture the mouse can turn their camera.
+
+KWin runs as a window inside Wolf's compositor. Like that, it only hears where the cursor is, not how far the mouse
+moved, unless it locks the cursor in Wolf's compositor; then it gets the mouse's relative movement, as on a desktop.
+A game that captures the mouse (Minecraft's mouse-look, any first-person game) needs that movement: without it the
+camera doesn't move, while menus, which only need the cursor, work. KWin locks the cursor only when Right Ctrl is
+pressed (Right Ctrl again unlocks it). This presses Right Ctrl once, when Boxshelf is up and KWin has the focus,
+through the session's own Wolf keyboard: a key written to the keyboard's node reaches everything reading it, here
+Wolf's compositor, which hands it to KWin. That node exists in this container only; every other session's, and this
+PC's, are out of reach.
+"""
+import glob
+import os
+import struct
+import subprocess
+import sys
+import time
+
+EV_SYN, EV_KEY, KEY_RIGHTCTRL = 0, 1, 97
+
+
+def log(msg):
+    print(f"[Boxshelf] pointer lock: {msg}", file=sys.stderr, flush=True)
+
+
+def wolf_keyboard():
+    """the session's Wolf keyboard node (only this session's input nodes exist in the container)"""
+    for node in sorted(glob.glob("/dev/input/event*")):
+        try:
+            name = open(f"/sys/class/input/{os.path.basename(node)}/device/name").read().strip()
+        except OSError:
+            continue
+        if name.startswith("Wolf") and "keyboard" in name.lower():
+            return node
+    return None
+
+
+def running(name):
+    return subprocess.run(["pgrep", "-x", name], capture_output=True).returncode == 0
+
+
+def main():
+    # Boxshelf's window is up once its process runs: KWin has mapped its own window in Wolf's compositor before it starts
+    # the session, and that window has the keyboard focus (it's the only one)
+    for _ in range(240):
+        if running("boxshelf-bin"):
+            break
+        time.sleep(0.5)
+    else:
+        log("Boxshelf didn't start; not locking")
+        return
+    time.sleep(2)
+    node = wolf_keyboard()
+    if not node:
+        log("no Wolf keyboard in this session; not locking")
+        return
+    ev = lambda t, c, v: struct.pack("llHHi", 0, 0, t, c, v)  # struct input_event (64-bit)
+    fd = os.open(node, os.O_WRONLY)
+    try:
+        os.write(fd, ev(EV_KEY, KEY_RIGHTCTRL, 1) + ev(EV_SYN, 0, 0))
+        time.sleep(0.05)
+        os.write(fd, ev(EV_KEY, KEY_RIGHTCTRL, 0) + ev(EV_SYN, 0, 0))
+    finally:
+        os.close(fd)
+    log(f"cursor locked through {node} (Right Ctrl unlocks and locks it again)")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:  # never in the way of the session
+        log(f"skipped: {e}")

@@ -17,6 +17,12 @@ Boxshelf per Wolf profile.
   itself on top, fades in and out, and covers a game while it closes. KWin
   behaves like a Plasma desktop does. Boxshelf itself uses X11 for the same
   reason.
+- **Mouse-look in games:** a nested KWin hears only where the cursor is, not how
+  far the mouse moved, until it locks the cursor in Wolf's compositor (KWin does
+  that on Right Ctrl). Without it a game that captures the mouse (Minecraft's
+  camera, first-person games) doesn't move, while menus work. `pointer-lock`
+  presses Right Ctrl once when Boxshelf is up, through the session's own Wolf
+  keyboard. Right Ctrl unlocks the cursor, and locks it again.
 - **Session:** Boxshelf is KWin's only session. Quitting Boxshelf (quick menu,
   then Power, then Exit) closes the stream.
 - **Emulators:** built on `base-emu`, so Dolphin, Cemu, PCSX2, RPCS3 and

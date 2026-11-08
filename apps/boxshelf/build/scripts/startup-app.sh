@@ -106,6 +106,11 @@ export KWIN_FORCE_SW_CURSOR=1
 WIDTH="${GAMESCOPE_WIDTH:-1920}"
 HEIGHT="${GAMESCOPE_HEIGHT:-1080}"
 
+# Mouse-look in games (Minecraft, any game that captures the mouse): the nested KWin gets the mouse's relative
+# movement only once it has locked the cursor in Wolf's compositor, which it does on Right Ctrl. pointer-lock presses
+# it once Boxshelf is up (see the script).
+/opt/boxshelf/pointer-lock &
+
 gow_log "[Boxshelf] Starting KWin ${WIDTH}x${HEIGHT} with Boxshelf"
 exec dbus-run-session -- kwin_wayland \
     --xwayland \
