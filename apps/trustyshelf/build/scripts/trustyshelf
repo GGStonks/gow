@@ -11,6 +11,11 @@
 # into TRUSTYSHELF_CACHE, shared by every profile, and started from there; an
 # extract-and-run unpacked all 290 MB into /tmp on every start. Without a
 # usable cache folder it falls back to extract-and-run.
+#
+# Updates: TRUSTYSHELF_APPIMAGE is the profile's own copy (startup-app.sh), passed as $APPIMAGE, which (T)rustyShelf's
+# auto-update replaces. After that (or any restart it asks for) it restarts itself with Electron's app.relaunch, which
+# drops the flags above, and its exit would end KWin's session (the stream). So this script stays: when (T)rustyShelf
+# exits to restart, the instance it started is stopped and the new version is started here, with the flags.
 TRUSTYSHELF_APPIMAGE="${TRUSTYSHELF_APPIMAGE:-/opt/trustyshelf/TrustyShelf.AppImage}"
 TRUSTYSHELF_CACHE="${TRUSTYSHELF_CACHE:-/var/cache/trustyshelf}"
 
@@ -42,7 +47,8 @@ dialog_settings() {
 }
 dialog_settings 2>/dev/null || echo "[(T)rustyShelf] file dialog size not set (GTK schema missing or not compiled): dialogs use GTK's own size" >&2
 
-run_cached() {
+# prints the folder this AppImage version is unpacked in (unpacking it the first time); fails without a usable cache
+cached_dir() {
     [ -d "$TRUSTYSHELF_CACHE" ] && [ -w "$TRUSTYSHELF_CACHE" ] || return 1
     local key dir tmp
     key=$(stat -c '%s-%Y' "$TRUSTYSHELF_APPIMAGE" 2>/dev/null) || return 1
@@ -56,13 +62,55 @@ run_cached() {
         mv -T "$tmp/squashfs-root" "$dir" 2>/dev/null || true
         rm -rf "$tmp"
         [ -x "$dir/AppRun" ] || return 1
-        # older versions go (one that's still running keeps its files until it closes)
-        find "$TRUSTYSHELF_CACHE" -mindepth 1 -maxdepth 1 -type d ! -name "$key" ! -name '.unpack-*' -mmin +10 -exec rm -rf {} + 2>/dev/null
+        # older versions go once no profile has started them for a day: each profile runs its own copy, so two can be
+        # on different versions at once (one that's still running keeps its files until it closes)
+        find "$TRUSTYSHELF_CACHE" -mindepth 1 -maxdepth 1 -type d ! -name "$key" ! -name '.unpack-*' -mmin +1440 -exec rm -rf {} + 2>/dev/null
     fi
-    exec "$dir/AppRun" "${FLAGS[@]}" "$@"
+    touch "$dir" 2>/dev/null # (in use: see above)
+    echo "$dir"
+}
+
+# Every process this run of (T)rustyShelf starts, its own restart included, carries TRUSTYSHELF_WOLF_RUN
+RUN_MARK="$$"
+run() {
+    local dir
+    if dir=$(cached_dir); then
+        TRUSTYSHELF_WOLF_RUN="$RUN_MARK" APPIMAGE="$TRUSTYSHELF_APPIMAGE" "$dir/AppRun" "${FLAGS[@]}" "$@"
+    else
+        TRUSTYSHELF_WOLF_RUN="$RUN_MARK" "$TRUSTYSHELF_APPIMAGE" --appimage-extract-and-run "${FLAGS[@]}" "$@"
+    fi
+}
+marked() {
+    local p
+    for p in /proc/[0-9]*; do
+        grep -qsxza -- "TRUSTYSHELF_WOLF_RUN=$RUN_MARK" "$p/environ" && echo "${p#/proc/}"
+    done
+}
+# (T)rustyShelf exited to restart: Electron's relauncher is waiting to start it again, or has started the AppImage
+restarting() {
+    local p
+    for p in $(marked); do
+        tr '\0' '\n' < "/proc/$p/cmdline" 2>/dev/null | grep -qxF -e '--type=relauncher' -e "$TRUSTYSHELF_APPIMAGE" && return 0
+    done
+    return 1
+}
+stop_marked() {
+    local pids i
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+        pids=$(marked)
+        [ -z "$pids" ] && return 0
+        # shellcheck disable=SC2086
+        kill -KILL $pids 2>/dev/null
+        sleep 0.3
+    done
 }
 
 # (from the home folder: a file dialog with no folder given opens there, not in the app's own folder)
 cd "$HOME" 2>/dev/null || true
-run_cached "$@"
-exec "${TRUSTYSHELF_APPIMAGE}" --appimage-extract-and-run "${FLAGS[@]}" "$@"
+while :; do
+    run "$@"
+    rc=$?
+    restarting || exit "$rc"
+    echo "[(T)rustyShelf] restarting (an update it installed, or a restart it asked for)" >&2
+    stop_marked
+done

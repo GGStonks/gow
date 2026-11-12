@@ -35,7 +35,9 @@ it as a Wolf app, one (T)rustyShelf per Wolf profile.
   `TrustyShelf.AppImage` read-only at `/opt/trustyshelf/TrustyShelf.AppImage`, so every
   profile runs the same build as the host (an official release from
   sassiestrhihno/boxshelf-beta or a build of your own), and updating it on the
-  host updates every profile. It's unpacked once per version into
+  host updates every profile. Each profile runs its own copy of it,
+  `~/TrustyShelf/app/TrustyShelf.AppImage` (a reflink on btrfs), so (T)rustyShelf's
+  own updates work in Wolf too: see below. It's unpacked once per version into
   `/etc/wolf/trustyshelf/app-cache` (shared by every profile) and started from
   there, instead of being unpacked into `/tmp` on every start.
 
@@ -77,13 +79,22 @@ next (T)rustyShelf session in Wolf runs the new version: no image rebuild, no
 config change. A session that's already open keeps its version until it's
 closed. Each new version is unpacked once, about 0.5 s on its first start.
 
+(T)rustyShelf can also update itself in a profile: Settings, then System, then
+"Automatically update on startup" (on in a new profile when the host's settings
+have it on). At start it downloads a newer release over the profile's copy and
+restarts; the launch wrapper starts the new version in the same stream, with
+its flags (Electron's own restart would drop them, and end the stream). The
+update is that profile's only. When the host's AppImage changes later than the
+profile's copy, the next start copies the host's over it. Unpacked versions no
+profile has started for a day are removed from the cache.
+
 The image and the Wolf entry provide what (T)rustyShelf finds around it:
 
 - KWin, Xwayland and the libraries Electron needs
 - `legendary`, `umu-run` and Wine
 - the emulators from `base-emu`
-- the start-up script: settings seed, the account's PC folders, box-art seed, emulator links
-- the launch wrapper: Chromium flags, the file dialog's size, the unpack cache
+- the start-up script: the profile's AppImage copy, settings seed, the account's PC folders, box-art seed, emulator links
+- the launch wrapper: Chromium flags, the file dialog's size, the unpack cache, restarts after an update
 - the mounts: games, the account's folder, Proton builds, caches
 
 These only need changing when a new (T)rustyShelf feature needs something new from

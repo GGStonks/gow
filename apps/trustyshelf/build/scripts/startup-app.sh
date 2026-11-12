@@ -24,6 +24,28 @@ if [ -d "${HOME}/Boxshelf" ] && [ ! -e "${TRUSTYSHELF_ROOT}" ]; then
 fi
 mkdir -p "${TRUSTYSHELF_ROOT}/data" "${HOME}/Applications"
 
+# ---------- The profile's own copy of (T)rustyShelf, which it can update itself ----------
+# Settings -> System -> "Automatically update on startup" replaces the AppImage that's running ($APPIMAGE) with the new
+# release. The host's is mounted read-only and shared, so each profile runs its own copy, ~/TrustyShelf/app: an update
+# replaces that one, for this profile only. When the host's AppImage changes after the copy was made (the host updated
+# or a build of its own), it's copied over this one at the next start, so the host's updates still reach every profile.
+# The copy keeps the host file's date (cp -p), so an unchanged host file is never copied again; on btrfs it's a
+# reflink, no time and no room.
+APP_COPY="${TRUSTYSHELF_ROOT}/app/TrustyShelf.AppImage"
+rm -f "${APP_COPY}.update.tmp" # (a download an update didn't finish)
+if [ ! -s "${APP_COPY}" ] || [ "${TRUSTYSHELF_APPIMAGE}" -nt "${APP_COPY}" ]; then
+    mkdir -p "${APP_COPY%/*}"
+    if cp --reflink=auto -p "${TRUSTYSHELF_APPIMAGE}" "${APP_COPY}.tmp" && mv -f "${APP_COPY}.tmp" "${APP_COPY}"; then
+        gow_log "[(T)rustyShelf] Copied the host's (T)rustyShelf to ${APP_COPY}"
+    else
+        rm -f "${APP_COPY}.tmp"
+        gow_log "[(T)rustyShelf] Couldn't copy the host's (T)rustyShelf: running it read-only (no updates from here)"
+    fi
+fi
+if [ -x "${APP_COPY}" ]; then
+    export TRUSTYSHELF_APPIMAGE="${APP_COPY}"
+fi
+
 # ---------- First start: settings from the host, without its accounts ----------
 # The seed is a copy the host prepares with its credentials already removed
 # (RetroAchievements, ScreenScraper, API keys). Strip them here too, in case a
@@ -35,8 +57,7 @@ if [ ! -s "${TRUSTYSHELF_ROOT}/data/config.json" ] && [ -s "${SEED_CONFIG}" ]; t
     if jq 'del(.keys, .keysEnc, .ra)
            | del(.pc.run, .pc.prefixDir, .pc.homeDir, .pc.userGamesDir)
            | .steam.enabled = false
-           | .ui.installs = []
-           | .ui.updateCheck = false' \
+           | .ui.installs = []' \
           "${SEED_CONFIG}" > "${TRUSTYSHELF_ROOT}/data/config.json.tmp"; then
         mv "${TRUSTYSHELF_ROOT}/data/config.json.tmp" "${TRUSTYSHELF_ROOT}/data/config.json"
     else
