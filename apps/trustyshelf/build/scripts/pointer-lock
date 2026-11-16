@@ -51,10 +51,17 @@ def main():
         log("(T)rustyShelf didn't start; not locking")
         return
     time.sleep(2)
-    node = wolf_keyboard()
-    if not node:
-        log("no Wolf keyboard in this session; not locking")
+    # Wolf plugs the session's input nodes into the container after it has started, often after (T)rustyShelf is up
+    # (it starts in about a second from the unpack cache): wait for the keyboard rather than looking once
+    for _ in range(240):
+        node = wolf_keyboard()
+        if node:
+            break
+        time.sleep(0.5)
+    else:
+        log("no Wolf keyboard in this session after 2 minutes; not locking")
         return
+    time.sleep(1)  # (a node that just appeared: give Wolf's compositor a moment to open it too)
     ev = lambda t, c, v: struct.pack("llHHi", 0, 0, t, c, v)  # struct input_event (64-bit)
     fd = os.open(node, os.O_WRONLY)
     try:
